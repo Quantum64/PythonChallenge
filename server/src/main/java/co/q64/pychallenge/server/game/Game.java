@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
@@ -43,7 +44,7 @@ public class Game {
 	private @Inject Logger logger;
 
 	private ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
-	//private Scanner scanner = new Scanner(System.in);
+	private Scanner scanner = new Scanner(System.in);
 
 	private long cutoffTime = 0;
 	private GamePhase phase = GamePhase.WAITING;
@@ -231,7 +232,7 @@ public class Game {
 
 	public void awaitInput() {
 		System.out.print("Awaiting input: ");
-		//scanner.nextLine();
+		scanner.nextLine();
 	}
 
 	/*

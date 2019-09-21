@@ -17,7 +17,7 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 
 
-const URL = "localhost:12345/socket"
+const URL = "q64.co:12345/socket"
 const automaticLayout = false;
 
 
