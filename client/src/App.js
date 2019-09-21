@@ -5,10 +5,11 @@ import Editor from '@monaco-editor/react';
 function App() {
   const [isEditorReady, setIsEditorReady] = useState(false);
   const editor = useRef();
+  const editor = useRef();
 
-  function handleEditorDidMount(editor) {
+  function handleEditorDidMount(e) {
     setIsEditorReady(true);
-    this.editor = editor;
+    editor.current = e;
   }
 
   function handleShowValue() {
