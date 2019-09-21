@@ -8,6 +8,7 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import CssBaseline from '@material-ui/core/CssBaseline';
+import TextField from '@material-ui/core/TextField';
 
 
 const URL = "localhost:12345/socket"
@@ -26,7 +27,8 @@ class App extends React.Component {
       phase: "",
       test: "",
       feedback: "",
-      result: ""
+      result: "",
+      username: ""
     }
 
     this.socket = new WebSocket("ws://" + URL);
@@ -42,7 +44,9 @@ class App extends React.Component {
     } else if (message.type === "question") {
       this.setState({
         question: message.question,
-        time: message.time
+        time: message.time,
+        output: "",
+        code: message.starter
       });
     } else if (message.type === "score") {
       this.setState({
@@ -106,25 +110,56 @@ class App extends React.Component {
     const bytes = 0
 
     let content = <div>
-      Unable to connect to the socket...
+      Connecting to the socket. Please wait.
+      <br />
+      If you see this message for more than a few seconds, try refreshing the page.
     </div>;
 
     if (this.state.phase === "waiting") {
-      content = <h1>
-        WAITING FOR QUESTION
-      </h1>
+      content =
+        <Grid container direction="column" justify="center" alignItems="center" style={{ width: "100%", height: "100%" }}>
+          <Grid item>
+            <Typography variant="h1" component="h2" gutterBottom>
+              WAITING FOR PROBLEM
+            </Typography>
+          </Grid>
+          <Grid item>
+            <Typography variant="h6" gutterBottom>
+              While you're waiting, pick a username
+            </Typography>
+          </Grid>
+          <Grid item>
+            <Grid container justify="center" alignItems="center" spacing={2}>
+              <Grid item>
+                <TextField
+                  id="outlined-name"
+                  label="Name"
+                  value={this.state.username}
+                  onChange={() => { }}
+                  margin="normal"
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item>
+                <Button size="small" variant="contained" color="primary" onClick={() => this.handleRunCode()}>
+                  Submit
+                </Button>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
     }
     else if (this.state.phase === "question") {
       content =
         <React.Fragment>
-          <h6>
+          <Typography variant="h5">
             {this.state.question}
-          </h6>
+          </Typography>
           <Grid container direction="column" spacing={0} style={{ height: "100%" }}>
             <Grid item>
               <Typography variant="h6">
-                Code ({bytes} bytes)
-            </Typography>
+                Code
+              </Typography>
             </Grid>
             <Grid item xs>
               <MonacoEditor width="100%" height="100%" language="python" theme="vs"
@@ -150,7 +185,7 @@ class App extends React.Component {
                   <Grid item>
                     <Button size="small" variant="contained" color="primary" onClick={() => this.handleRunCode()}>
                       Run Code
-                 </Button>
+                    </Button>
                   </Grid>
                   <Grid item>
                     <Button size="small" variant="contained" color="secondary" onClick={() => {

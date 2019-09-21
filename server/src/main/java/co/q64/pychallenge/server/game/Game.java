@@ -1,13 +1,11 @@
 package co.q64.pychallenge.server.game;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
@@ -17,13 +15,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import org.json.JSONObject;
-import org.python.core.PyCode;
 import org.python.core.PyInteger;
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
@@ -69,6 +67,12 @@ public class Game {
 			payload.put("type", "question");
 			payload.put("question", question.getDescription());
 			payload.put("time", time);
+			List<String> arguments = IntStream.rangeClosed(1, question.getArguments()).mapToObj(Game::charFromNum).map(String::toLowerCase).collect(Collectors.toList());
+			StringBuilder sb = new StringBuilder("def " + question.getMethodName() + "(" + arguments.stream().collect(Collectors.joining(", ")) + "):\n\n");
+			sb.append("# Test with print\n");
+			int[] values = question.generateTestValues();
+			sb.append("print(" + question.getMethodName() + "(" + Arrays.stream(values).mapToObj(String::valueOf).collect(Collectors.joining(", ")) + "))");
+			payload.put("starter", sb.toString());
 			socket.broadcast(payload);
 			//awaitInput();
 			try {
@@ -223,5 +227,9 @@ public class Game {
 			}
 		}
 		return Optional.empty();
+	}
+
+	private static String charFromNum(int i) {
+		return i > 0 && i < 27 ? String.valueOf((char) (i + 64)) : null;
 	}
 }
