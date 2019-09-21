@@ -28,6 +28,9 @@ public class MessageHandler {
 			user.setUsername(name);
 			break;
 		case "submit":
+			if (message.getString("submission").toLowerCase().contains("while")) {
+				return;
+			}
 			user.setSubmission(message.getString("submission"));
 			user.setSubmissionTime(System.currentTimeMillis());
 			break;

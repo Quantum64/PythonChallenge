@@ -26,9 +26,9 @@ public class Questions {
 	@Inject
 	private void init() {
 		questions.add(addQuestion);
-		questions.add(bothNegativeQuestion);
-		questions.add(fibonacciQuestion);
 		questions.add(squareQuestion);
+		questions.add(bothNegativeQuestion);
 		questions.add(sumIntsQuestion);
+		questions.add(fibonacciQuestion);
 	}
 }

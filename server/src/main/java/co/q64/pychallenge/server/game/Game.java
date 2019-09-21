@@ -50,6 +50,7 @@ public class Game {
 	private GamePhase phase = GamePhase.WAITING;
 	private List<User> users = new ArrayList<>();
 	private Question question;
+	private int questionIndex = 1;
 
 	public void start() {
 		question = questions.getQuestions().get(0);
@@ -151,7 +152,7 @@ public class Game {
 				tasks.add(task);
 			}
 			try {
-				service.awaitTermination(25000, TimeUnit.MILLISECONDS);
+				service.awaitTermination(10000, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -181,6 +182,10 @@ public class Game {
 		} else if (phase == GamePhase.SCORE) {
 			this.phase = GamePhase.RESULTS;
 
+			for (User u : users) {
+				u.setSubmission("");
+			}
+			
 			JSONObject payload = new JSONObject();
 			payload.put("type", "results");
 			JSONArray scores = new JSONArray();
@@ -205,7 +210,8 @@ public class Game {
 			}
 			nextPhase();
 		} else if (phase == GamePhase.RESULTS) {
-			question = questions.getQuestions().get(ThreadLocalRandom.current().nextInt(questions.getQuestions().size()));
+			question = questions.getQuestions().get(questionIndex % questions.getQuestions().size());
+			questionIndex++;
 			this.phase = GamePhase.WAITING;
 			broadcastPhase();
 			printPhase();
