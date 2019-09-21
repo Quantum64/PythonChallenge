@@ -6,13 +6,20 @@ import static spark.Spark.webSocket;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import co.q64.pychallenge.server.game.Game;
+import spark.Spark;
+
 @Singleton
 public class Server {
 	private @Inject Socket socket;
+	private @Inject Game game;
 
 	public void start() {
 
 		webSocket("/socket", socket);
 		port(12345);
+		Spark.init();
+		
+		game.start();
 	}
 }

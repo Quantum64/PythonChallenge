@@ -5,8 +5,10 @@
   "dependencies": {
     "@material-ui/core": "^4.4.2",
     "@monaco-editor/react": "^1.2.1",
+    "i": "^0.3.6",
     "react": "^16.9.0",
     "react-dom": "^16.9.0",
+    "react-monaco-editor": "^0.31.0",
     "react-scripts": "3.1.2",
     "skulpt": "^0.11.1",
     "typeface-roboto": "0.0.75"

@@ -2,9 +2,11 @@ package co.q64.pychallenge.server.user;
 
 import java.util.UUID;
 
-import lombok.experimental.Accessors;
+import lombok.Getter;
+import lombok.Setter;
 
-@Accessors
+@Getter
+@Setter
 public class User {
 	private String username;
 	private int score;
