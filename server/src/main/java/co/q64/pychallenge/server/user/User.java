@@ -9,8 +9,9 @@ import lombok.Setter;
 @Setter
 public class User {
 	private String username;
+	private String feedback = "None";
 	private int score;
 	private UUID id;
-	private String submission;
+	private String submission = "", test = "", resut = "";
 	private boolean active;
 }

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import Editor from '@monaco-editor/react';
+import MonacoEditor from 'react-monaco-editor';
 import skulpt from 'skulpt';
 
 import Grid from '@material-ui/core/Grid';
@@ -11,35 +11,27 @@ import CssBaseline from '@material-ui/core/CssBaseline';
 
 
 const URL = "localhost:12345/socket"
+const automaticLayout = false;
+
+
 class App extends React.Component {
 
   constructor(props) {
     super(props);
     this.state = {
-      isEditorReady: false,
-      outputText: "",
+      code: "",
+      output: "",
       question: "No question",
       time: 100,
-      phase: "question"
+      phase: "",
+      test: "",
+      feedback: "",
+      result: ""
     }
-    this.editor = React.createRef();
-    this.output = React.createRef();
 
     this.socket = new WebSocket("ws://" + URL);
     this.socket.onmessage = (msg) => this.message(msg);
     //this.socket.onclose = function () { alert("WebSocket connection closed") };
-  }
-
-  handleEditorDidMount(e) {
-    this.setState({
-      phase: "waiting",
-      isEditorReady: true
-    });
-    this.editor.current = e;
-  }
-
-  handleOutputDidMount(e) {
-    this.output.current = e;
   }
 
   message(msg) {
@@ -48,7 +40,16 @@ class App extends React.Component {
     if (message.type === "phase") {
       this.setState({ phase: message.phase });
     } else if (message.type === "question") {
-
+      this.setState({
+        question: message.question,
+        time: message.time
+      });
+    } else if (message.type === "score") {
+      this.setState({
+        feedback: message.feedback,
+        result: message.result,
+        test: message.test
+      })
     }
   }
 
@@ -66,17 +67,44 @@ class App extends React.Component {
         result += text
       }, read: this.readf
     });
-    let promise = skulpt.misceval.asyncToPromise(function () {
-      return skulpt.importMainWithBody("<stdin>", false, this.editor.current(), true);
-    });
-    promise.then((mod) => {
-      this.setState({
-        outputText: result
-      })
-    });
+    skulpt.importMainWithBody("<stdin>", false, this.state.code, true);
+    this.setState({
+      output: result
+    })
   }
 
+  handleSubmit() {
+    this.socket.send(JSON.stringify({
+      type: "submit",
+      submission: this.state.code
+    }))
+
+    alert("Submitted!");
+  }
+
+  mutateEditor(monaco) {
+    /*
+    this.hack = monaco;
+    monaco.editor.defineTheme('emotion', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'keyword', foreground: '0000ff' },
+      ]
+    });
+    monaco.languages.register({
+      id: "elang"
+    });
+    */
+  }
+
+
   render() {
+    const options = { selectOnLineNumbers: true, automaticLayout: automaticLayout };
+    const optionsArguments = { ...options, minimap: { enabled: false } }
+    const optionsDisabled = { ...optionsArguments, readOnly: true }
+    const bytes = 0
+
     let content = <div>
       Unable to connect to the socket...
     </div>;
@@ -87,45 +115,73 @@ class App extends React.Component {
       </h1>
     }
     else if (this.state.phase === "question") {
-      content = <>
-        <Editor
-          height="40vh"
-          language="python"
-          value={"print 'Hello, World'"}
-          editorDidMount={(e) => this.handleEditorDidMount(e)}
-        />
-
-        <Grid container direction="row" alignItems="center" spacing={2} style={{ padding: 5 }}>
-          <Grid item>
-            <Typography variant="h6">
-              Program Output
+      content =
+        <React.Fragment>
+          <h6>
+            {this.state.question}
+          </h6>
+          <Grid container direction="column" spacing={0} style={{ height: "100%" }}>
+            <Grid item>
+              <Typography variant="h6">
+                Code ({bytes} bytes)
             </Typography>
+            </Grid>
+            <Grid item xs>
+              <MonacoEditor width="100%" height="100%" language="python" theme="vs"
+                value={this.state.code}
+                options={options}
+                onChange={(value, event) => {
+                  this.setState({
+                    code: value
+                  });
+                }}
+                editorWillMount={(editor) => this.mutateEditor(editor)}
+              />
+            </Grid>
+            <br />
+            <Grid item>
+              <Grid container direction="row" alignItems="center" spacing={2} style={{ padding: 5 }}>
+                <Grid container direction="row" alignItems="center" spacing={2} style={{ padding: 5 }}>
+                  <Grid item>
+                    <Typography variant="h6">
+                      Program Output
+                    </Typography>
+                  </Grid>
+                  <Grid item>
+                    <Button size="small" variant="contained" color="primary" onClick={() => this.handleRunCode()}>
+                      Run Code
+                 </Button>
+                  </Grid>
+                  <Grid item>
+                    <Button size="small" variant="contained" color="secondary" onClick={() => {
+                      this.handleSubmit();
+                    }}>
+                      Submit Solution
+                   </Button>
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Grid>
+            <Grid item xs>
+              <MonacoEditor width="100%" height="100%" language="text" theme="vs"
+                value={this.state.output}
+                options={optionsDisabled}
+              />
+            </Grid>
           </Grid>
-          <Grid item>
-            <Button size="small" variant="contained" color="primary" onClick={() => this.handleRunCode()}>
-              Run Code
-             </Button>
-          </Grid>
-          <Grid item>
-            <Button size="small" variant="contained" color="secondary" onClick={() => {
-
-            }}>
-              Submit Solution
-           </Button>
-          </Grid>
-        </Grid>
-
-        <Editor
-          height="30vh"
-          language="text"
-          value={(e) => this.stateoutputText(e)}
-          onChange={() => { }}
-          editorDidMount={(o) => this.handleOutputDidMount(o)}
-        />
-      </>
+        </React.Fragment>
     }
     else if (this.state.phase === "score") {
-
+      content =
+        <React.Fragment>
+          <h3>Feedback</h3>
+          <h2>{this.state.feedback}</h2>
+          <br></br>
+          <h3>Your test case: </h3>
+          <h2>{this.state.test}</h2>
+          <h3>Your program produced</h3>
+          <h2>{this.state.result}</h2>
+        </React.Fragment>
     }
 
     return (

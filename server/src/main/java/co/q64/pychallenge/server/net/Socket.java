@@ -3,6 +3,7 @@ package co.q64.pychallenge.server.net;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -22,6 +23,8 @@ import co.q64.pychallenge.server.util.MessageHandler;
 @WebSocket
 @Singleton
 public class Socket {
+	public static final boolean DEBUG_SOCKET = false;
+
 	private @Inject Logger logger;
 	private @Inject Game game;
 	private @Inject MessageHandler messageHandler;
@@ -31,16 +34,20 @@ public class Socket {
 	@OnWebSocketConnect
 	public void onConnect(Session user) throws Exception {
 		UUID id = UUID.randomUUID();
+		if (DEBUG_SOCKET) {
+			logger.info("User connected: " + id);
+		}
 		users.put(user, id);
 		game.userConnect(id);
-		logger.info("User connected: " + id);
 	}
 
 	@OnWebSocketClose
 	public void onClose(Session user, int statusCode, String reason) {
 		game.userDisconnect(users.get(user));
 		users.remove(user);
-		logger.info("User connected: " + users.get(user));
+		if (DEBUG_SOCKET) {
+			logger.info("User connected: " + users.get(user));
+		}
 	}
 
 	@OnWebSocketMessage
@@ -55,7 +62,9 @@ public class Socket {
 	}
 
 	public void broadcast(JSONObject message) {
-		logger.info("Broadcasting: " + message.toString());
+		if (DEBUG_SOCKET) {
+			logger.info("Broadcasting: " + message.toString());
+		}
 		users.keySet().forEach(user -> {
 			try {
 				user.getRemote().sendString(message.toString());
@@ -63,5 +72,17 @@ public class Socket {
 				e.printStackTrace();
 			}
 		});
+	}
+
+	public void send(UUID id, JSONObject message) {
+		for (Entry<Session, UUID> e : users.entrySet()) {
+			if (e.getValue().equals(id)) {
+				try {
+					e.getKey().getRemote().sendString(message.toString());
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		}
 	}
 }
