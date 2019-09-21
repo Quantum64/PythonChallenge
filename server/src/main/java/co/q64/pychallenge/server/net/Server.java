@@ -16,7 +16,7 @@ public class Server {
 
 	public void start() {
 
-		Spark.staticFileLocation("build");
+		Spark.staticFileLocation("/root/build");
 		webSocket("/socket", socket);
 		port(12345);
 		Spark.init();
