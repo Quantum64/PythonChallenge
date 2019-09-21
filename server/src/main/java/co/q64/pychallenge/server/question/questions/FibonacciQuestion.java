@@ -8,7 +8,7 @@ import lombok.Getter;
 @Singleton
 public class FibonacciQuestion implements Question {
 	private final @Getter String description = "Write a single function named 'fib' taking one argument. Return the nth iteration of the Fibonacci Sequence.";
-	private final @Getter int time = 300;
+	private final @Getter int time = 120;
 	private final @Getter String methodName = "fib";
 	private final @Getter int arguments = 1;
 

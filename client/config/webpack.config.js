@@ -164,10 +164,7 @@ module.exports = function (webpackEnv) {
       // changing JS code would still trigger a refresh.
     ].filter(Boolean),
     plugins: [
-      new MonacoWebpackPlugin({
-        // available options are documented at https://github.com/Microsoft/monaco-editor-webpack-plugin#options
-        languages: ['python']
-      })
+      new MonacoWebpackPlugin()
     ],
     output: {
       // The build folder.

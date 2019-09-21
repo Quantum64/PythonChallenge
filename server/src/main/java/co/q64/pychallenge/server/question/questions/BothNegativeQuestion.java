@@ -8,7 +8,7 @@ import lombok.Getter;
 @Singleton
 public class BothNegativeQuestion implements Question {
 	private final @Getter String description = "Write a single function named 'bothNegative' taking two arguments. Return 1 if true and 0 if false.";
-	private final @Getter int time = 60;
+	private final @Getter int time = 30;
 	private final @Getter String methodName = "bothNegative";
 	private final @Getter int arguments = 2;
 

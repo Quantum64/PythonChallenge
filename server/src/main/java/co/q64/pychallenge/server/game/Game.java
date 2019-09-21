@@ -151,7 +151,7 @@ public class Game {
 				tasks.add(task);
 			}
 			try {
-				service.awaitTermination(5000, TimeUnit.MILLISECONDS);
+				service.awaitTermination(25000, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

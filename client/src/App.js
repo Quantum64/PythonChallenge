@@ -17,7 +17,7 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 
 
-const URL = "q64.co:12345/socket"
+const URL = "python.q64.co:12345/socket"
 const automaticLayout = false;
 
 
@@ -82,7 +82,7 @@ class App extends React.Component {
   }
 
   startTimer() {
-    if (this.timer == 0 && this.startTime > 0) {
+    if (this.startTime > 0) {
       this.timer = setInterval(() => this.countDown(), 1000);
     }
   }
@@ -336,7 +336,7 @@ class App extends React.Component {
             </Grid>
             <Grid item>
               <Typography variant="h3" style={{ color: "RoyalBlue" }}>
-                Your score for this probpem is {this.state.score}
+                Your score for this problem is {this.state.score}
               </Typography>
             </Grid>
             <Grid item>

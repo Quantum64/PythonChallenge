@@ -8,7 +8,7 @@ import lombok.Getter;
 @Singleton
 public class SquareQuestion implements Question {
 	private final @Getter String description = "Write a single function named 'sqr' taking one argument. Return the squared value of a given integer.";
-	private final @Getter int time = 30;
+	private final @Getter int time = 20;
 	private final @Getter String methodName = "sqr";
 	private final @Getter int arguments = 1;
 

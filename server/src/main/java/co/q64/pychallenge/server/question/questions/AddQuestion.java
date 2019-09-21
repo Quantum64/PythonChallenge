@@ -8,7 +8,7 @@ import lombok.Getter;
 @Singleton
 public class AddQuestion implements Question {
 	private final @Getter String description = "Write a single function named 'add' taking two arguments. Return the sum of the arguments";
-	private final @Getter int time = 15;
+	private final @Getter int time = 30;
 	private final @Getter String methodName = "add";
 	private final @Getter int arguments = 2;
 
