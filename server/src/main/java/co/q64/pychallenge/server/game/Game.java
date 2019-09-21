@@ -2,6 +2,7 @@ package co.q64.pychallenge.server.game;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -10,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +23,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.python.core.PyInteger;
 import org.python.core.PyObject;
@@ -42,10 +45,10 @@ public class Game {
 	private ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
 	//private Scanner scanner = new Scanner(System.in);
 
+	private long cutoffTime = 0;
 	private GamePhase phase = GamePhase.WAITING;
 	private List<User> users = new ArrayList<>();
 	private Question question;
-	private int time;
 
 	public void start() {
 		question = questions.getQuestions().get(0);
@@ -54,19 +57,20 @@ public class Game {
 
 	public void nextPhase() {
 		if (phase == GamePhase.WAITING) {
-			//awaitInput();
-			try {
+			awaitInput();
+			/*try {
 				Thread.sleep(10000);
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();
 			}
+			*/
 			phase = GamePhase.QUESTION;
 			broadcastPhase();
 			printPhase();
 			JSONObject payload = new JSONObject();
 			payload.put("type", "question");
 			payload.put("question", question.getDescription());
-			payload.put("time", time);
+			payload.put("time", question.getTime());
 			List<String> arguments = IntStream.rangeClosed(1, question.getArguments()).mapToObj(Game::charFromNum).map(String::toLowerCase).collect(Collectors.toList());
 			StringBuilder sb = new StringBuilder("def " + question.getMethodName() + "(" + arguments.stream().collect(Collectors.joining(", ")) + "):\n\n");
 			sb.append("# Test with print\n");
@@ -76,24 +80,26 @@ public class Game {
 			socket.broadcast(payload);
 			//awaitInput();
 			try {
-				Thread.sleep(30000);
+				Thread.sleep(question.getTime() * 1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			nextPhase();
 		} else if (phase == GamePhase.QUESTION) {
-			phase = GamePhase.SCORE;
-			broadcastPhase();
-			printPhase();
+			cutoffTime = System.currentTimeMillis();
 			Queue<User> queue = new ConcurrentLinkedDeque<>(users);
 			ExecutorService service = Executors.newFixedThreadPool(6);
+			List<Future<?>> tasks = new ArrayList<>();
 			while (!queue.isEmpty()) {
 				User user = queue.poll();
-				service.submit(() -> {
+				Future<?> task = service.submit(() -> {
 					logger.info("Running submission for " + user.getId());
 					user.setTest("No test case generated.");
 					user.setResut("No output.");
+					user.setLastScore(0);
 					user.setFeedback("No submission.");
+					JSONObject payload = new JSONObject();
+					payload.put("score", 0);
 					if (user.getSubmission().trim().isEmpty()) {
 						logger.info("No submission for " + user.getId());
 					} else {
@@ -118,10 +124,15 @@ public class Game {
 								int raw = ((PyInteger) result).getValue();
 								user.setResut(String.valueOf(raw));
 								if (question.test(arguments, raw)) {
+									int score = (int) (cutoffTime - user.getSubmissionTime());
 									user.setFeedback("The test case was passed!");
-									user.setScore(user.getScore() + 100);
+									user.setScore(user.getScore() + score);
+									payload.put("pass", true);
+									payload.put("score", score);
+									user.setLastScore(score);
 								} else {
 									user.setFeedback("The test case failed.");
+									payload.put("pass", false);
 								}
 							}
 						} catch (Exception e) {
@@ -129,16 +140,31 @@ public class Game {
 						}
 						logger.info("Submission complete for " + user.getId());
 					}
-					JSONObject payload = new JSONObject();
+					payload.put("totalScore", user.getScore());
 					payload.put("type", "score");
 					payload.put("test", user.getTest());
 					payload.put("result", user.getResut());
 					payload.put("feedback", user.getFeedback());
 					socket.send(user.getId(), payload);
 				});
+				tasks.add(task);
 			}
 			try {
-				service.awaitTermination(10000, TimeUnit.MILLISECONDS);
+				service.awaitTermination(5000, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			for (Future<?> task : tasks) {
+				try {
+					task.cancel(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			phase = GamePhase.SCORE;
+			broadcastPhase();
+			printPhase();
+			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -153,6 +179,21 @@ public class Game {
 
 		} else if (phase == GamePhase.SCORE) {
 			this.phase = GamePhase.RESULTS;
+
+			JSONObject payload = new JSONObject();
+			payload.put("type", "results");
+			JSONArray scores = new JSONArray();
+			Collections.sort(users, (o1, o2) -> Integer.compare(o2.getLastScore(), o1.getLastScore()));
+			for (User user : users) {
+				JSONObject obj = new JSONObject();
+				obj.put("name", user.getUsername().isEmpty() ? Long.toString(user.getId().getLeastSignificantBits(), 1) : user.getUsername());
+				obj.put("last", user.getLastScore());
+				obj.put("total", user.getScore());
+				scores.put(obj);
+			}
+			payload.put("results", scores);
+			socket.broadcast(payload);
+
 			broadcastPhase();
 			printPhase();
 			logger.info("Waiting 10 seconds to move on to the next question (results).");
@@ -167,6 +208,13 @@ public class Game {
 			this.phase = GamePhase.WAITING;
 			broadcastPhase();
 			printPhase();
+			logger.info("Waiting 10 seconds to move on to the next question (results).");
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			nextPhase();
 		}
 	}
 

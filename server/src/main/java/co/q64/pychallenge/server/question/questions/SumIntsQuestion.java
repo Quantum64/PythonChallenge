@@ -15,7 +15,7 @@ public class SumIntsQuestion implements Question {
 	@Override
 	public boolean test(int[] inputs, int output) {
 		int a = 0;
-		for(int i = 0; i < inputs[0]; i++) {
+		for (int i = 0; i < inputs[0]; i++) {
 			a = a + i;
 		}
 		return a == output;

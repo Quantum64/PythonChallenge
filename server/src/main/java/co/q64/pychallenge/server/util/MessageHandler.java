@@ -21,10 +21,16 @@ public class MessageHandler {
 		JSONObject message = new JSONObject(text);
 		switch (message.getString("type")) {
 		case "username":
-			user.setUsername(message.getString("username"));
+			String name = message.getString("username");
+			if (name.length() > 25) {
+				name = name.substring(0, 24);
+			}
+			user.setUsername(name);
 			break;
 		case "submit":
 			user.setSubmission(message.getString("submission"));
+			user.setSubmissionTime(System.currentTimeMillis());
+			break;
 		}
 	}
 }

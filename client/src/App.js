@@ -9,6 +9,12 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
+import Table from '@material-ui/core/Table';
+import TableBody from '@material-ui/core/TableBody';
+import TableCell from '@material-ui/core/TableCell';
+import TableHead from '@material-ui/core/TableHead';
+import TableRow from '@material-ui/core/TableRow';
+import Paper from '@material-ui/core/Paper';
 
 
 const URL = "localhost:12345/socket"
@@ -23,14 +29,20 @@ class App extends React.Component {
       code: "",
       output: "",
       question: "No question",
-      time: 100,
+      time: 1,
       phase: "",
       test: "",
       feedback: "",
       result: "",
-      username: ""
+      username: "",
+      score: 0,
+      totslScore: 0,
+      pass: false,
+      submitted: false,
+      named: false
     }
 
+    this.timer = 0;
     this.socket = new WebSocket("ws://" + URL);
     this.socket.onmessage = (msg) => this.message(msg);
     //this.socket.onclose = function () { alert("WebSocket connection closed") };
@@ -46,13 +58,44 @@ class App extends React.Component {
         question: message.question,
         time: message.time,
         output: "",
-        code: message.starter
+        code: message.starter,
+        submitted: false
       });
+      this.startTime = message.time;
+      this.startTimer();
     } else if (message.type === "score") {
       this.setState({
         feedback: message.feedback,
         result: message.result,
-        test: message.test
+        test: message.test,
+        pass: message.pass,
+        score: message.score,
+        totalScore: message.totalScore,
+        phase: "score",
+        results: []
+      })
+    } else if (message.type === "results") {
+      this.setState({
+        results: message.results
+      })
+    }
+  }
+
+  startTimer() {
+    if (this.timer == 0 && this.startTime > 0) {
+      this.timer = setInterval(() => this.countDown(), 1000);
+    }
+  }
+
+  countDown() {
+    let seconds = this.state.time - 1;
+    this.setState({
+      time: seconds,
+    });
+    if (seconds == 0) {
+      clearInterval(this.timer);
+      this.setState({
+        submitted: true
       })
     }
   }
@@ -81,9 +124,22 @@ class App extends React.Component {
     this.socket.send(JSON.stringify({
       type: "submit",
       submission: this.state.code
-    }))
+    }));
+    this.setState({
+      submitted: true
+    });
 
-    alert("Submitted!");
+    // TODO snackbar
+  }
+
+  handleUsername() {
+    this.socket.send(JSON.stringify({
+      type: "username",
+      username: this.state.username
+    }));
+    this.setState({
+      named: true
+    });
   }
 
   mutateEditor(monaco) {
@@ -100,6 +156,45 @@ class App extends React.Component {
       id: "elang"
     });
     */
+  }
+
+  getResultTable() {
+    const rows = [];
+    for (let result of this.state.results) {
+      rows.push(
+        <TableRow key={result}>
+          <TableCell>
+            {result.name}
+          </TableCell>
+          <TableCell>
+            {result.last}
+          </TableCell>
+          <TableCell>
+            {result.total}
+          </TableCell>
+        </TableRow>);
+    }
+    return (
+      <div>
+        <Typography variant="h2">
+          Problem Results
+        </Typography>
+        <Paper>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Username</TableCell>
+                <TableCell>Score</TableCell>
+                <TableCell>Total Score</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows}
+            </TableBody>
+          </Table>
+        </Paper>
+      </div>
+    );
   }
 
 
@@ -119,34 +214,47 @@ class App extends React.Component {
       content =
         <Grid container direction="column" justify="center" alignItems="center" style={{ width: "100%", height: "100%" }}>
           <Grid item>
-            <Typography variant="h1" component="h2" gutterBottom>
+            <Typography variant="h1" component="h2">
               WAITING FOR PROBLEM
             </Typography>
           </Grid>
-          <Grid item>
-            <Typography variant="h6" gutterBottom>
-              While you're waiting, pick a username
-            </Typography>
-          </Grid>
-          <Grid item>
-            <Grid container justify="center" alignItems="center" spacing={2}>
-              <Grid item>
-                <TextField
-                  id="outlined-name"
-                  label="Name"
-                  value={this.state.username}
-                  onChange={() => { }}
-                  margin="normal"
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item>
-                <Button size="small" variant="contained" color="primary" onClick={() => this.handleRunCode()}>
-                  Submit
-                </Button>
-              </Grid>
+          {this.state.named ?
+            <Grid item>
+              <Typography variant="h6">
+                Greetings, {this.state.username}
+              </Typography>
             </Grid>
-          </Grid>
+            :
+            <React.Fragment>
+              <Grid item>
+                <Typography variant="h6">
+                  While you're waiting, pick a username
+            </Typography>
+              </Grid>
+              <Grid item>
+                <Grid container justify="center" alignItems="center" spacing={2}>
+                  <Grid item>
+                    <TextField
+                      id="outlined-name"
+                      label="Name"
+                      value={this.state.username}
+                      onChange={(event) => {
+                        this.setState({
+                          username: event.target.value
+                        })
+                      }}
+                      margin="normal"
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item>
+                    <Button size="small" variant="contained" color="primary" onClick={() => this.handleUsername()}>
+                      Submit
+                </Button>
+                  </Grid>
+                </Grid>
+              </Grid>
+            </React.Fragment>}
         </Grid>
     }
     else if (this.state.phase === "question") {
@@ -162,7 +270,7 @@ class App extends React.Component {
               </Typography>
             </Grid>
             <Grid item xs>
-              <MonacoEditor width="100%" height="100%" language="python" theme="vs"
+              <MonacoEditor width="100%" height="300px" language="python" theme="vs"
                 value={this.state.code}
                 options={options}
                 onChange={(value, event) => {
@@ -187,18 +295,25 @@ class App extends React.Component {
                       Run Code
                     </Button>
                   </Grid>
+                  {this.state.submitted ? <span></span> :
+                    <Grid item>
+                      <Button size="small" variant="contained" color="secondary" onClick={() => {
+                        this.handleSubmit();
+                      }}>
+                        Submit Solution
+                     </Button>
+                    </Grid>
+                  }
                   <Grid item>
-                    <Button size="small" variant="contained" color="secondary" onClick={() => {
-                      this.handleSubmit();
-                    }}>
-                      Submit Solution
-                   </Button>
+                    <Typography variant="h6">
+                      Time Remaining: {this.state.time}
+                    </Typography>
                   </Grid>
                 </Grid>
               </Grid>
             </Grid>
             <Grid item xs>
-              <MonacoEditor width="100%" height="100%" language="text" theme="vs"
+              <MonacoEditor width="100%" height="250px" language="text" theme="vs"
                 value={this.state.output}
                 options={optionsDisabled}
               />
@@ -209,14 +324,43 @@ class App extends React.Component {
     else if (this.state.phase === "score") {
       content =
         <React.Fragment>
-          <h3>Feedback</h3>
-          <h2>{this.state.feedback}</h2>
-          <br></br>
-          <h3>Your test case: </h3>
-          <h2>{this.state.test}</h2>
-          <h3>Your program produced</h3>
-          <h2>{this.state.result}</h2>
+          <Grid container justify="center" alignItems="center" direction="column">
+            <Grid item>
+              {this.state.pass ?
+                <Typography variant="h3" style={{ color: "green", fontSize: "10em" }}>
+                  PASS
+              </Typography> :
+                <Typography variant="h3" style={{ color: "red", fontSize: "10em" }}>
+                  FAIL
+                </Typography>}
+            </Grid>
+            <Grid item>
+              <Typography variant="h3" style={{ color: "RoyalBlue" }}>
+                Your score for this probpem is {this.state.score}
+              </Typography>
+            </Grid>
+            <Grid item>
+              <Typography variant="h5" style={{ color: "RoyalBlue" }}>
+                This brings your total score to {this.state.totalScore}
+              </Typography>
+            </Grid>
+          </Grid>
+          <br /><br />
+          <Typography variant="h3">
+            Run Details
+          </Typography>
+          <Typography variant="h6">
+            Feedback: {this.state.feedback}
+          </Typography>
+          <Typography variant="h6">
+            Your test case: {this.state.test}
+          </Typography>
+          <Typography variant="h6">
+            Your program produced: {this.state.result}
+          </Typography>
         </React.Fragment>
+    } else if (this.state.phase === "results") {
+      content = this.getResultTable()
     }
 
     return (
@@ -228,7 +372,7 @@ class App extends React.Component {
               <Grid item>
                 <Typography variant="h6" color="inherit" noWrap>
                   Python Challenge
-            </Typography>
+                </Typography>
               </Grid>
             </Grid>
           </Toolbar>

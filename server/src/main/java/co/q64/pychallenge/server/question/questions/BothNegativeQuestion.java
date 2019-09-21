@@ -15,10 +15,9 @@ public class BothNegativeQuestion implements Question {
 	@Override
 	public boolean test(int[] inputs, int output) {
 		int answer;
-		if((inputs[0] < 0)&&(inputs[1] < 0)) {
+		if ((inputs[0] < 0) && (inputs[1] < 0)) {
 			answer = 1;
-		}
-		else {
+		} else {
 			answer = 0;
 		}
 		return answer == output;
