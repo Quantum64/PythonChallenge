@@ -7,15 +7,15 @@ import lombok.Getter;
 
 @Singleton
 public class SumIntsQuestion implements Question {
-	private final @Getter String description = "Write a single function named 'sumInts' taking two arguments. Return the sum of all integers from n to 0.";
+	private final @Getter String description = "Write a single function named 'sumInts' taking one argument. Return the sum of all integers from n to 0.";
 	private final @Getter int time = 30;
 	private final @Getter String methodName = "sumInts";
-	private final @Getter int arguments = 2;
+	private final @Getter int arguments = 1;
 
 	@Override
 	public boolean test(int[] inputs, int output) {
 		int a = 0;
-		for (int i = 0; i < inputs[0]; i++) {
+		for (int i = 0; i <= inputs[0]; i++) {
 			a = a + i;
 		}
 		return a == output;
@@ -23,6 +23,6 @@ public class SumIntsQuestion implements Question {
 
 	@Override
 	public int[] generateTestValues() {
-		return randomArray(2, 10, 50);
+		return randomArray(1, 10, 50);
 	}
 }
